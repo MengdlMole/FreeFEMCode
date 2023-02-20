@@ -1,0 +1,15 @@
+mesh Th=square(10,10);
+plot(Th);
+fespace Xh(Th,P1);
+fespace Xph(Th,P1,periodic=[[2,y],[4,y],[1,x],[3,x]]);
+fespace Mh(Th,P2);
+fespace Rh(Th,RT0);
+
+Xh uh,vh;
+Xph uph,vph;
+Mh ph,qh;
+Rh [Uxh,Uyh],[Vxh,Vyh];
+Xh[int] Uh(10);
+Rh[int] [Wxh,Wyh](10);
+// cout << Wxh[5](0.5,0.5) << endl;
+// cout << Wxh[5][];
