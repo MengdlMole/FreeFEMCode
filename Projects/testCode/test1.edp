@@ -3,7 +3,19 @@ mesh Th = buildmesh(C(50));
 
 fespace Vh(Th,P2);
 Vh u,v;
-func f = x*y;
+real d1=1, k1=1;
+real d2=1, k2=1;
+real a1=10, a2=1;
+real b=1, c=1;
+real dt=0.01;
+real T=dt*1;
+real t=0;
+func f1old = -10*a1*(1+t)^(-2)*(1-x^2)*(1-y^2)
+                + 2*d1*a1*(1+10*(1+t)^(-1))*(2-x^2-y^2)
+                - a1*(1+10*(1+t)^(-1))*(1-x^2)*(1-y^2)/(1+a2*(1+(1+t^(1/2))^(-1))*(1-x^2)^2*(1-y^2)^2)
+                + b*a1*a2*(1+10*(1+t)^(-1))*(1+(1+t^(1/2))^(-1))*(1-x^2)^3*(1-y^2)^3
+                + k1*a1*(1+10*(1+t)^(-1))*(1-x^2)*(1-y^2);
+func f = a1*(1+t)^(-1)*x*y;
 real cpu = clock();
 solve Poisson(u,v,solver=LU) =
     int2d(Th)( dx(u)*dx(v) + dy(u)*dy(v) )

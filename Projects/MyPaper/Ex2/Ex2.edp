@@ -1,0 +1,114 @@
+// bool debug = true;
+bool debug = false;
+border Gamma1(t=-1, 1) {x=t; y=-1;}
+border Gamma2(t=-1, 1) {x=1; y=t;}
+border Gamma3(t=-1, 1) {x=-t; y=1;}
+border Gamma4(t=-1, 1) {x=-1; y=-t;}
+// border C(t=0, 2*pi) {x=cos(t); y=sin(t);}
+
+int n=10;
+// mesh Th = buildmesh(Gamma1(10*n)+Gamma2(10*n)+Gamma3(10*n)+Gamma4(10*n));
+mesh Th = square(n,n,[-1+2*x,-1+2*y]);
+
+fespace Vh(Th,P2);
+real d1=1, d2=1;
+real k1=4, k2=1;
+real lambda1=1, lambda2=1;
+func u0 = 2*(1-x^2)*(1-y^2);
+func v0 = 1*(1-x^2)^3*(1-y^2)^3;
+Vh u=u0, v=v0;
+Vh uu, vv;
+Vh uold, vold;
+
+macro a1(u, v) (d1*(dx(u)*dx(v)+dy(u)*dy(v))+k1*u*v)  //
+macro a2(u, v) (d2*(dx(u)*dx(v)+dy(u)*dy(v))+k2*u*v)  //
+macro F1(u, v) (lambda1*u*v)  //
+macro F2(u, v) (lambda2*u)  //
+macro duF1(u, v) (lambda1*v)  //
+macro dvF1(u, v) (lambda1*u)  //
+macro duF2(u, v) (lambda2)  //
+macro dvF2(u, v) (0)  //
+
+real dt=0.01;
+real T=dt*100;
+// real t=0;
+// int timeStepNum=0;
+for(real t=0; t<=T; t+=0){
+    // timeStepNum++;
+    uold=u;
+    vold=v;
+    func f1old = 2*t*(1-x^2)*(1-y^2)
+                + 2*d1*(2+t^2)*(2-x^2-y^2)
+                + k1*(2+t^2)*(1-x^2)*(1-y^2)
+                - lambda1*(2+t^2)*(1+t^2)*(1-x^2)^4*(1-y^2)^4;
+    func f2old = 2*t*(1-x^2)^3*(1-y^2)^3
+                + 6*d2*(1+t^2)*((1-6*x^2+5*x^4)*(1-y^2)^3+(1-x^2)^3*(1-6*y^2+5*y^4))
+                + k2*(1+t^2)*(1-x^2)^3*(1-y^2)^3
+                - lambda2*(2+t^2)*(1-x^2)*(1-y^2);
+    t+=dt;
+    func f1 = 2*t*(1-x^2)*(1-y^2)
+                + 2*d1*(2+t^2)*(2-x^2-y^2)
+                + k1*(2+t^2)*(1-x^2)*(1-y^2)
+                - lambda1*(2+t^2)*(1+t^2)*(1-x^2)^4*(1-y^2)^4;
+    func f2 = 2*t*(1-x^2)^3*(1-y^2)^3
+                + 6*d2*(1+t^2)*((1-6*x^2+5*x^4)*(1-y^2)^3+(1-x^2)^3*(1-6*y^2+5*y^4))
+                + k2*(1+t^2)*(1-x^2)^3*(1-y^2)^3
+                - lambda2*(2+t^2)*(1-x^2)*(1-y^2);
+
+    problem Prey([u,v], [uu,vv]) = int2d(Th)(u/dt*uu+v/dt*vv+a1(u,uu)/2+a2(v,vv)/2)
+                                    - int2d(Th)(duF1(uold, vold)*u*uu/2+dvF1(uold, vold)*v*uu/2)
+                                    - int2d(Th)(duF2(uold, vold)*u*vv/2+dvF2(uold, vold)*v*vv/2)
+                                    - int2d(Th)((F1(uold, vold)+duF1(uold, vold)*(-uold)/2+dvF1(uold, vold)*(-vold)/2)*uu)
+                                    - int2d(Th)((F2(uold, vold)+duF2(uold, vold)*(-uold)/2+dvF2(uold, vold)*(-vold)/2)*vv)
+                                    - int2d(Th)(uold/dt*uu+vold/dt*vv-a1(uold,uu)/2-a2(vold,vv)/2)
+                                    - int2d(Th)((f1+f1old)*uu/2) - int2d(Th)((f2+f2old)*vv/2)
+                                    + on(1,2,3,4, u=0, v=0);
+                                    // + on(Gamma1, u=0, v=0)
+                                    // + on(Gamma2, u=0, v=0)
+                                    // + on(Gamma3, u=0, v=0)
+                                    // + on(Gamma4, u=0, v=0);
+    Prey;
+    // plot(u, wait = debug, ps = "D:\\CodeDevelopment\\MyCode\\Freefem++Code\\Projects\\Mypaper\\Ex2\\Ex2u.eps");
+    // plot(v, wait = debug, ps = "D:\\CodeDevelopment\\MyCode\\Freefem++Code\\Projects\\Mypaper\\Ex2\\Ex2v.eps");
+    // real uMax=0;
+    // ofstream fileu("D:\\CodeDevelopment\\MyCode\\Freefem++Code\\Projects\\Mypaper\\Ex2\\uOutput\\u"+timeStepNum+".txt");
+    // {
+    //     for(int j=0; j<u[].n; j++){
+    //         fileu<<u[][j]<<endl;
+    //         // if(uMax < uold[][j])
+    //             // uMax=uold[][j];
+    //     }
+    // }
+    // // cout<<"uMax="<<uMax<<endl;
+    // // real vMax=0;
+    // ofstream filev("D:\\CodeDevelopment\\MyCode\\Freefem++Code\\Projects\\Mypaper\\Ex2\\vOutput\\v"+timeStepNum+".txt");
+    // {
+    //     for(int j=0; j<v[].n; j++){
+    //         filev<<v[][j]<<endl;
+    //         // if(vMax < vold[][j])
+    //             // vMax=vold[][j];
+    //     }
+    // }
+    // cout<<"vMax="<<vMax<<endl;
+    // ofstream fileuExact("D:\\CodeDevelopment\\MyCode\\Freefem++Code\\Projects\\Mypaper\\Ex2\\uExactOutput\\uExact"+timeStepNum+".txt");
+    // {
+    //     for(int j=0; j<uExact[].n; j++){
+    //         fileu<<uExact[][j]<<endl;
+    //     }
+    // }
+    // ofstream filevExact("D:\\CodeDevelopment\\MyCode\\Freefem++Code\\Projects\\Mypaper\\Ex2\\vExactOutput\\vExact"+timeStepNum+".txt");
+    // {
+    //     for(int j=0; j<vExact[].n; j++){
+    //         fileu<<vExact[][j]<<endl;
+    //     }
+    // }
+    func uExact = (2+t^2)*(1-x^2)*(1-y^2);
+    func vExact = (1+t^2)*(1-x^2)^3*(1-y^2)^3;
+    real[int] L2error(2);
+    L2error[0]= sqrt(int2d(Th)((u-uExact)^2));
+    L2error[1]= sqrt(int2d(Th)((v-vExact)^2));
+    cout<<"error1="<<L2error[0]<<endl;
+    cout<<"error2="<<L2error[1]<<endl;
+    // func f1old = f1;
+    // func f2old = f2;
+}                   

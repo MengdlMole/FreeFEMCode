@@ -1,8 +1,0 @@
-border Gamma1(s=0,1) {x=s;y=0;label=C}
-border Gamma2(s=0,1) {x=1;y=s;label=C}
-border Gamma3(s=0,1) {x=1-s;y=1;label=C}
-border Gamma4(s=0,1) {x=0;y=1-s;label=C}
-
-mesh Th = buildmesh (C(50));
-
-fespace Vh(Th,P1);

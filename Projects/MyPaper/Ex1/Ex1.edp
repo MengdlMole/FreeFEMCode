@@ -1,0 +1,96 @@
+// bool debug = true;
+bool debug = false;
+border Gamma1(t=-1, 1) {x=t; y=-1;}
+border Gamma2(t=-1, 1) {x=1; y=t;}
+border Gamma3(t=-1, 1) {x=-t; y=1;}
+border Gamma4(t=-1, 1) {x=-1; y=-t;}
+// border C(t=0, 2*pi) {x=cos(t); y=sin(t);}
+
+real n=40;
+// mesh Th = buildmesh(Gamma1(10*n)+Gamma2(10*n)+Gamma3(10*n)+Gamma4(10*n));
+mesh Th = square(n,n,[-1+2*x,-1+2*y]);
+
+
+fespace Vh(Th,P1);
+real d1=1, k1=1;
+real d2=1, k2=1;
+real lambda1=1, lambda2=1;
+real b=5, c=1;
+func u0 = 2*lambda1*(1-x^2)*(1-y^2);
+func v0 = 2*lambda2*(1-x^2)^2*(1-y^2)^2;
+Vh u=u0, v=v0;
+Vh uu, vv;
+Vh uold, vold;
+
+macro a1(u, v) (d1*(dx(u)*dx(v)+dy(u)*dy(v))+k1*u*v)  //
+macro a2(u, v) (d2*(dx(u)*dx(v)+dy(u)*dy(v))+k2*u*v)  //
+macro F1(u, v) (u/(1+v)-b*u*v)  //
+macro F2(u, v) (c*u*v)  //
+macro duF1(u, v) (1/(1+v)-b*v)  //
+macro dvF1(u, v) (-u/(1+v)^2-b*u)  //
+macro duF2(u, v) (c*v)  //
+macro dvF2(u, v) (c*u)  //
+
+real dt=0.01;
+real T=dt*100;
+ofstream errorOut("D:\\CodeDevelopment\\MyCode\\Freefem++Code\\Projects\\Mypaper\\Ex1\\Output\\error"+n+".txt");
+for(real t=0; t<=T; t+=0){
+    uold=u;
+    vold=v;
+    func f1old = -1*lambda1*(1+t)^(-2)*(1-x^2)*(1-y^2)
+                + 2*d1*lambda1*(1+1*(1+t)^(-1))*(2-x^2-y^2)
+                + k1*lambda1*(1+1*(1+t)^(-1))*(1-x^2)*(1-y^2)
+                - lambda1*(1+1*(1+t)^(-1))*(1-x^2)*(1-y^2)/(1+lambda2*(1+(1+t^(1/2))^(-1))*(1-x^2)^2*(1-y^2)^2)
+                + b*lambda1*lambda2*(1+1*(1+t)^(-1))*(1+(1+t^(1/2))^(-1))*(1-x^2)^3*(1-y^2)^3;
+    func f2old = -lambda2*(1+t^(1/2))^(-2)*t^(-1/2)*(1-x^2)^2*(1-y^2)^2/2
+                + 4*d2*lambda2*(1+(1+t^(1/2))^(-1))*((1-3*x^2)*(1-y^2)^2+(1-x^2)^2*(1-3*y^2))
+                + k2*lambda2*(1+(1+t^(1/2))^(-1))*(1-x^2)^2*(1-y^2)^2
+                - c*lambda1*lambda2*(1+1*(1+t)^(-1))*(1+(1+t^(1/2))^(-1))*(1-x^2)^3*(1-y^2)^3;
+    t+=dt;
+    func f1 = -1*lambda1*(1+t)^(-2)*(1-x^2)*(1-y^2)
+                + 2*d1*lambda1*(1+1*(1+t)^(-1))*(2-x^2-y^2)
+                + k1*lambda1*(1+1*(1+t)^(-1))*(1-x^2)*(1-y^2)
+                - lambda1*(1+1*(1+t)^(-1))*(1-x^2)*(1-y^2)/(1+lambda2*(1+(1+t^(1/2))^(-1))*(1-x^2)^2*(1-y^2)^2)
+                + b*lambda1*lambda2*(1+1*(1+t)^(-1))*(1+(1+t^(1/2))^(-1))*(1-x^2)^3*(1-y^2)^3;
+    func f2 = -lambda2*(1+t^(1/2))^(-2)*t^(-1/2)*(1-x^2)^2*(1-y^2)^2/2
+                + 4*d2*lambda2*(1+(1+t^(1/2))^(-1))*((1-3*x^2)*(1-y^2)^2+(1-x^2)^2*(1-3*y^2))
+                + k2*lambda2*(1+(1+t^(1/2))^(-1))*(1-x^2)^2*(1-y^2)^2
+                - c*lambda1*lambda2*(1+1*(1+t)^(-1))*(1+(1+t^(1/2))^(-1))*(1-x^2)^3*(1-y^2)^3;
+
+    problem Prey([u,v], [uu,vv]) = int2d(Th)(u/dt*uu+v/dt*vv+a1(u,uu)/2+a2(v,vv)/2)
+                                    - int2d(Th)(duF1(uold, vold)*u*uu/2+dvF1(uold, vold)*v*uu/2)
+                                    - int2d(Th)(duF2(uold, vold)*u*vv/2+dvF2(uold, vold)*v*vv/2)
+                                    - int2d(Th)((F1(uold, vold)+duF1(uold, vold)*(-uold)/2+dvF1(uold, vold)*(-vold)/2)*uu)
+                                    - int2d(Th)((F2(uold, vold)+duF2(uold, vold)*(-uold)/2+dvF2(uold, vold)*(-vold)/2)*vv)
+                                    - int2d(Th)(uold/dt*uu+vold/dt*vv-a1(uold,uu)/2-a2(vold,vv)/2)
+                                    - int2d(Th)((f1+f1old)*uu/2) - int2d(Th)((f2+f2old)*vv/2)
+                                    + on(1,2,3,4, u=0, v=0);
+                                    // + on(Gamma1, u=0, v=0)
+                                    // + on(Gamma2, u=0, v=0)
+                                    // + on(Gamma3, u=0, v=0)
+                                    // + on(Gamma4, u=0, v=0);
+    Prey;
+    // plot(u, wait = debug, ps = "D:\\CodeDevelopment\\MyCode\\Freefem++Code\\Projects\\Mypaper\\Ex1\\Ex1u.eps");
+    // plot(v, wait = debug, ps = "D:\\CodeDevelopment\\MyCode\\Freefem++Code\\Projects\\Mypaper\\Ex1\\Ex1v.eps");
+    func uExact = lambda1*(1+1/(1+t))*(1-x^2)*(1-y^2);
+    func vExact = lambda2*(1+1/(1+sqrt(t)))*(1-x^2)^2*(1-y^2)^2;
+    real[int] L2error(2);
+    L2error[0]= sqrt(int2d(Th)((u-uExact)^2));
+    L2error[1]= sqrt(int2d(Th)((v-vExact)^2));
+    cout<<"error1="<<L2error[0]<<endl;
+    cout<<"error2="<<L2error[1]<<endl;
+    errorOut<<L2error[0]<<"\t";
+    errorOut<<L2error[1]<<"\n";
+    // func f1old = f1;
+    // func f2old = f2;
+}                   
+// ifstream errorIn("D:\\CodeDevelopment\\MyCode\\Freefem++Code\\Projects\\Mypaper\\Ex1\\Output\\error.txt");
+// real[int] data(200);
+// real dataMax=0;
+// errorIn>>data[];
+// // while(errorIn>>data){
+// //     if(data>dataMax){
+// //         dataMax=data;
+// //     }
+// // }
+// cout<<"errorMax="<<dataMax<<endl;
